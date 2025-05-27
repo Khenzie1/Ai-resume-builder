@@ -22,7 +22,9 @@ def generate_resume_suggestions(
     """
 
     try:
-        model = GenerativeModel("gemini-pro")  # Or use another available Gemini model
+        # Use the correct Gemini model (use "gemini-1.5-flash" or "gemini-1.5-pro" if available)
+        model = GenerativeModel("gemini-1.5-flash")  # Make sure this is a supported model
+
         response = model.generate_content(prompt)
 
         # Extract and return response text

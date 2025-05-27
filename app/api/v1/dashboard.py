@@ -5,8 +5,8 @@ from app.crud.user import get_user_by_email
 from app.crud.resume import get_user_resumes
 from app.core.config import settings
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError
-import jwt
+from jose import JWTError, jwt
+
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")

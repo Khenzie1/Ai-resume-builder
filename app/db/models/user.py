@@ -9,3 +9,6 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # New fields for password reset code
+    reset_code = Column(String, nullable=True)
+    reset_code_expiry = Column(DateTime, nullable=True)

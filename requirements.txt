@@ -4,9 +4,13 @@ sqlalchemy
 pydantic[email]
 python-multipart
 passlib[bcrypt]
-python-jose[cryptography]
+bcrypt==3.2.0
+python-jose[cryptography] == 3.3.0
 httpx
 pytest
 email-validator
 jinja2
 google-generativeai
+pydantic-settings
+firebase-admin
+itsdangerous

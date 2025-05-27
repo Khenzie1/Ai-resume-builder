@@ -8,7 +8,7 @@ from app.db.base import Base
 from app.api.deps import get_db
 
 # Use SQLite for isolated test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./GIDE.db"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
