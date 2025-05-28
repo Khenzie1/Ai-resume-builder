@@ -12,7 +12,7 @@ venv/
 .env
 
 # Firebase Admin SDK key
-firebaseadminsdk.json
+firebase-adminsdk.json
 
 # SQLite database file
 GIDE.db

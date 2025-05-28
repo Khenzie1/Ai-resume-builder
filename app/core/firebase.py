@@ -1,22 +1,24 @@
-import os
 import firebase_admin
-from firebase_admin import credentials, auth
-from app.core.config import settings
+from firebase_admin import credentials
+from app.core.config import settings # Assuming your settings object is named 'settings'
 
-firebase_credentials_path = settings.GOOGLE_APPLICATION_CREDENTIALS
+def initialize_firebase():
+    """
+    Initializes the Firebase Admin SDK.
+    This function should be called once when the application starts.
+    """
+    firebase_credentials_path = settings.GOOGLE_APPLICATION_CREDENTIALS
 
-if not firebase_credentials_path:
-    raise ValueError("GOOGLE_APPLICATION_CREDENTIALS is not set in the .env file")
+    if not firebase_credentials_path:
+        raise ValueError("GOOGLE_APPLICATION_CREDENTIALS is not set in .env file")
 
-# Convert to absolute path if necessary
-firebase_credentials_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", firebase_credentials_path)
-) if not os.path.isabs(firebase_credentials_path) else firebase_credentials_path
+    # Ensure the path is correct if the app runs from a different directory
+    # For a path relative to the project root, you might need:
+    # import os
+    # base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # full_path = os.path.join(base_dir, firebase_credentials_path)
 
-if not os.path.exists(firebase_credentials_path):
-    raise FileNotFoundError(f"Firebase credentials file not found at: {firebase_credentials_path}")
-
-# Initialize Firebase Admin SDK only once
-if not firebase_admin._apps:
+    # For now, let's assume direct path if .env is in root
     cred = credentials.Certificate(firebase_credentials_path)
     firebase_admin.initialize_app(cred)
+    print("Firebase Admin SDK initialized successfully.")

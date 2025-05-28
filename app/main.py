@@ -5,12 +5,21 @@ from app.api.v1.password_reset.routes import router as password_reset_router
 from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
+from app.core.firebase import initialize_firebase # Import the initialization function
+
 
 app = FastAPI(
     title="GIDE",
     description="Generate ATS-ready, globally optimized resumes with AI",
     version="1.0.0"
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    initialize_firebase()
+    # You might also initialize your database connection here
+    # await init_db() # Example if you have a database initialization function
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

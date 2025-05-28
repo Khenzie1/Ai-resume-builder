@@ -1,76 +1,3 @@
-# from pydantic_settings import BaseSettings, SettingsConfigDict
-# from pydantic import Field
-# from functools import lru_cache
-
-
-# class Settings(BaseSettings):
-#     app_name: str = "Resume AI Generator"
-#     environment: str = "development"
-#     testing: bool = False
-#     DATABASE_URL: str = Field()
-#     SECRET_KEY: str = Field()
-#     ALGORITHM: str = "HS256"
-#     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-#     GEMINI_API_KEY: str = Field()
-
-#     model_config = SettingsConfigDict(env_file=".env", extra="ignore", populate_by_name=True)
-
-
-# @lru_cache()
-# def get_settings():
-#     return Settings()
-
-
-# settings = get_settings()
-
-
-
-
-
-
-
-
-
-
-
-# from pydantic_settings import BaseSettings, SettingsConfigDict
-# from pydantic import Field
-# from functools import lru_cache
-
-
-# class Settings(BaseSettings):
-#     app_name: str = "Resume AI Generator"
-#     environment: str = "development"
-#     testing: bool = False
-
-#     DATABASE_URL: str = Field()
-#     SECRET_KEY: str = Field()
-#     ALGORITHM: str = "HS256"
-#     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-#     GEMINI_API_KEY: str = Field()
-
-#     # Add this for Firebase integration
-#     GOOGLE_APPLICATION_CREDENTIALS: str = Field()
-
-#     model_config = SettingsConfigDict(
-#         env_file=".env",
-#         extra="ignore",
-#         populate_by_name=True
-#     )
-
-
-# @lru_cache()
-# def get_settings():
-#     return Settings()
-
-
-# settings = get_settings()
-
-
-
-
-
-
 
 import os
 from functools import lru_cache
@@ -99,6 +26,9 @@ class Settings(BaseSettings):
     MAIL_USERNAME: str = Field(...)
     MAIL_PASSWORD: str = Field(...)
     MAIL_FROM: EmailStr = Field(...)
+
+    #Add this for Firebase integration
+    GOOGLE_APPLICATION_CREDENTIALS: str 
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,
