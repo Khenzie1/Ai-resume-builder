@@ -122,7 +122,7 @@ python-jose==3.4.0
 python-multipart==0.0.20
 pyttsx3==2.98
 pytz==2023.3.post1
-pywin32==306
+
 PyYAML==6.0.2
 pyzmq==25.1.2
 reportlab==4.3.1
