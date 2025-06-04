@@ -14,3 +14,7 @@ google-generativeai
 pydantic-settings
 firebase-admin
 itsdangerous
+psycopg2-binary
+python-dotenv
+celery==5.5.3
+fastapi_mail

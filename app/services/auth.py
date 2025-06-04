@@ -1,118 +1,106 @@
 # app/services/auth.py
 import firebase_admin.auth
 from datetime import datetime
-import uuid # For generating placeholder password for new users
 
-from sqlalchemy.orm import Session # Added for database session dependency
+from sqlalchemy.orm import Session
+from fastapi import HTTPException, status # Required for raising HTTP errors
 
 from app.db.models.user import User # User model for type hinting
-from app.crud.user import get_user_by_email, create_user
+from app.crud.user import get_user_by_email # Only need to get user, not create
+# from app.crud.user import create_user # Not needed if you don't auto-register
+# from app.schemas.user import UserCreate # Not needed if you don't auto-register
+
 from app.core.security import create_access_token
-from app.schemas.user import UserCreate # Assuming this schema exists for create_user
+from app.schemas.firebase_schemas import AuthSuccessResponse
+from app.schemas.user import UserOut # Assuming your UserOut schema is defined
 
 # It's assumed that firebase_admin.initialize_app() has been called elsewhere in your application startup.
+# Example: In app/main.py or a dedicated app/core/firebase_config.py
 
-async def handle_google_signin(db: Session, firebase_id_token: str):
+async def handle_google_signin(db: Session, firebase_id_token: str) -> AuthSuccessResponse:
     """
-    Verifies the Firebase ID token, and either logs in an existing user
-    or creates a new user in your database.
-    Returns user data and an application-specific access token.
+    Verifies the Firebase ID token and logs in an existing user.
+    
+    IMPORTANT: This function DOES NOT automatically register new users.
+    If the user's email from the Google token is not found in your database,
+    an HTTPException (401 Unauthorized) is raised.
+    
+    Returns user data and an application-specific access token upon successful login.
     """
     try:
+        # 1. Verify the Firebase ID token with Google's servers
         decoded_token = firebase_admin.auth.verify_id_token(firebase_id_token)
 
         firebase_email = decoded_token.get("email")
-        firebase_name = decoded_token.get("name") # Fetched from Firebase
-        firebase_picture = decoded_token.get("picture") # Fetched from Firebase
+        # You can fetch other details if needed, but not used for login/registration check here
+        # firebase_name = decoded_token.get("name")
+        # firebase_picture = decoded_token.get("picture")
 
         if not firebase_email:
-            # Consider using HTTPException for API responses in a framework like FastAPI
-            raise ValueError("Firebase token does not contain an email.")
+            # This should ideally not happen if Firebase token is valid for a Google account
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Firebase token does not contain a valid email."
+            )
 
-        # Call synchronous CRUD function without await
+        # 2. Check if the user exists in your database by email
         existing_user = get_user_by_email(db=db, email=firebase_email)
-        
-        user_for_token_and_response: User # To hold either existing_user or new_user
 
-        if existing_user:
-            # User exists in your database
-            # You might want to update their details (e.g., name/picture from Firebase)
-            # if your User model has corresponding fields and you wish to keep them synced.
-            # For example, if User model had 'profile_picture_url' and 'display_name':
-            # if firebase_name and existing_user.display_name != firebase_name:
-            #     existing_user.display_name = firebase_name
-            # if firebase_picture and existing_user.profile_picture_url != firebase_picture:
-            #     existing_user.profile_picture_url = firebase_picture
-            # await db.commit() # If using SQLAlchemy async session
-            # db.commit() # For synchronous SQLAlchemy session, after potential updates
+        if not existing_user:
+            # --- CRITICAL CHANGE FOR "REGISTERED USERS ONLY" POLICY ---
+            # If the user's email from Google is NOT found in your database,
+            # we raise an unauthorized error to prevent automatic registration.
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not registered. Please register first or use standard login."
+            )
 
-            user_for_token_and_response = existing_user
-            
-            # The User model provided does not have a 'role' field.
-            # Role-based access control logic has been removed.
-            # If roles were present:
-            # if existing_user.role == AccountType.user or existing_user.role == AccountType.case_officer:
-            #    pass # Proceed
-            # else:
-            #    raise ValueError("Unauthorized role for this sign-in method.")
+        # If we reach here, the user *does* exist in your database
+        user_for_token_and_response: User = existing_user
 
-        else:
-            # New user signing up
-            # The User model requires a non-null hashed_password.
-            # For social logins, a password isn't typically set by the user in our system.
-            # This is a workaround: generate a random, unusable password.
-            # Ideally, User.hashed_password should be nullable or a separate creation
-            # path for social users should exist that doesn't require a password.
-            
-            # Assuming app.schemas.user.UserCreate looks like:
-            # class UserCreate(BaseModel):
-            #     email: EmailStr
-            #     password: str
-            #     # full_name: Optional[str] = None # If User model/create_user supports it
-            
-            # Note: The provided User model does not have a 'full_name' field.
-            # If it did, and UserCreate schema supported it, you could pass firebase_name:
-            # user_create_payload = UserCreate(email=firebase_email, password=str(uuid.uuid4()), full_name=firebase_name)
-            user_create_payload = UserCreate(email=firebase_email, password=str(uuid.uuid4()))
+        # 3. Generate your application-specific access token
+        # You might want to update the last_login timestamp here if you track it
+        # user_for_token_and_response.last_login = datetime.utcnow()
+        # db.add(user_for_token_and_response)
+        # db.commit()
+        # db.refresh(user_for_token_and_response)
 
-            # Call synchronous CRUD function without await
-            new_user = create_user(db=db, user=user_create_payload)
-            user_for_token_and_response = new_user
-
-        # Prepare data for the access token
-        # The User model does not have 'role', so it's omitted from the token.
         access_token_data = {
-            "sub": str(user_for_token_and_response.id),
+            "sub": str(user_for_token_and_response.id), # Use ID for robustness
             "email": user_for_token_and_response.email
         }
         access_token = create_access_token(data=access_token_data)
 
-        # Prepare user data for the response
-        # Includes fields directly from the User model and supplements with Firebase data
-        # The User model does not have 'full_name', 'updated_at', or 'role'.
-        user_response_data = {
-            "user_id": str(user_for_token_and_response.id),
-            "email": user_for_token_and_response.email,
-            "full_name": firebase_name,  # Name from Firebase token
-            "picture": firebase_picture, # Picture from Firebase token
-            "created_at": user_for_token_and_response.created_at.isoformat(),
-            # "updated_at" is not in the User model
-            # "role" is not in the User model
-        }
-            
-        return {"user": user_response_data, "access_token": access_token}
+        # 4. Prepare user data for the response using UserOut schema
+        # Ensure your UserOut schema has 'id', 'email', and 'username'
+        # And that your User model also has a 'username' field.
+        user_response_data = UserOut(
+            id=user_for_token_and_response.id,
+            email=user_for_token_and_response.email,
+            username=user_for_token_and_response.username # Assuming User model has 'username'
+            # Add other fields from your User model that are in UserOut
+            # e.g., created_at=user_for_token_and_response.created_at
+        )
+
+        # 5. Return the AuthSuccessResponse object
+        return AuthSuccessResponse(user=user_response_data, access_token=access_token)
 
     except firebase_admin.auth.InvalidIdTokenError as e:
-        # Log the error for debugging
-        print(f"Invalid Firebase ID token: {e}")
-        # In a web framework, you'd typically raise an HTTPException here
-        raise ValueError("Invalid or expired Firebase ID token.")
-    except ValueError as e: # Catching specific ValueErrors raised above
-        print(f"Authentication business logic error: {e}")
-        raise # Re-raise to be handled by the caller (e.g., API route)
+        # Catch Firebase-specific token validation errors (e.g., token expired, malformed)
+        print(f"DEBUG: Invalid Firebase ID token: {e}") # Log this for server-side debugging
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired Firebase ID token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except HTTPException as e:
+        # This catches HTTPExceptions explicitly raised within this function (like the 401 for unregistered users)
+        raise e # Re-raise them to be handled by the FastAPI router
     except Exception as e:
-        # Log the error for debugging
-        print(f"An unexpected error occurred during Google Sign-In: {e}")
-        # In a web framework, you'd typically raise an HTTPException here
-        raise ValueError(f"Authentication failed due to an unexpected error.")
+        # Catch any other unexpected errors during the process
+        print(f"ERROR: An unexpected error occurred during Google Sign-In: {e}") # Log for debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Authentication failed due to an unexpected server error: {e}",
+        )
 

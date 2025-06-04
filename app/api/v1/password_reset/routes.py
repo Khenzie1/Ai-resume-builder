@@ -15,6 +15,7 @@ def forgot_password(payload: PasswordResetRequest, db: Session = Depends(get_db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+
     # Generate a 6-digit code
     reset_code = str(random.randint(100000, 999999))
     # Store the code and its expiry in the database

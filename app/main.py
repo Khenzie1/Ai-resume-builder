@@ -6,20 +6,22 @@ from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
 from app.core.firebase import initialize_firebase # Import the initialization function
-
+from app.services import email
 
 app = FastAPI(
-    title="GIDE",
+    # title="GIDE",
+    title = settings.TITLE,
     description="Generate ATS-ready, globally optimized resumes with AI",
-    version="1.0.0"
+    # version= "1.0.0"
+    version = settings.VERSION
 )
 
 
 @app.on_event("startup")
 async def startup_event():
+    print("Application startup event triggered. Initializing Firebase...")
     initialize_firebase()
-    # You might also initialize your database connection here
-    # await init_db() # Example if you have a database initialization function
+    print("Firebase initialization complete.")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -38,6 +40,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(password_reset_router, prefix="/api/v1/password-reset", tags=["Password Reset"])
 app.include_router(resume.router, prefix="/api/v1/resume", tags=["Resume"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
+app.include_router(email.router,prefix="/services/email", tags=["Email"])
 
 @app.get("/")
 def root():

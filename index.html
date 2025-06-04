@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Google Sign-In Test</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f0f0f0; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #tokenDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 600px;
+            word-break: break-all;
+        }
+        h2 { color: #333; }
+        pre { background-color: #e9e9e9; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Firebase Google Sign-In Test</h1>
+    <button id="signInButton">Sign in with Google</button>
+    <div id="tokenDisplay">
+        <h2>Firebase ID Token:</h2>
+        <pre id="idTokenValue">Token will appear here after sign-in...</pre>
+        <p>Copy the token above and paste it into your Swagger UI's request body for `/google-signin`.</p>
+    </div>
+
+    <script>
+        // Your Firebase project configuration
+        // Replace with your actual config from Firebase Console -> Project settings -> General -> Your apps -> Firebase SDK snippet
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9QtyiVRUfy_pecBEubqyp35D9u_R9nTU",
+            authDomain: "authentication-for-gide.firebaseapp.com",
+            projectId: "authentication-for-gide",
+            storageBucket: "authentication-for-gide.firebasestorage.app",
+            messagingSenderId: "594248581269",
+            appId: "1:594248581269:web:f600da262efb8567a7db9c",
+            measurementId: "G-SNZ4VE5Z5X"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        document.getElementById('signInButton').addEventListener('click', async () => {
+            try {
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
+                const idToken = await user.getIdToken();
+
+                document.getElementById('idTokenValue').textContent = idToken;
+                console.log("Successfully signed in!", user);
+                console.log("Firebase ID Token:", idToken);
+
+            } catch (error) {
+                console.error("Error during Google Sign-In:", error);
+                document.getElementById('idTokenValue').textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+<!-- 
+# Navigate to the folder containing your HTML file
+cd path/to/your/html/file
+
+# Start a local server (Python 3.x)
+python -m http.server 8000
+
+-->
